@@ -1,0 +1,9 @@
+{
+  "type": "record",
+  "name": "message",
+  "doc": "Encrypted message with encrypted secret key",
+  "fields": [
+    {"name": "key", "type": "string"},
+    {"name": "payload", "type": "string"}
+  ]
+}
