@@ -13,3 +13,22 @@ hs_err_pid*
 
 *.iml
 .idea/
+
+# Maven
+log/
+*/target/
+/target/
+dependency-reduced-pom.xml
+
+# Log files
+*.log
+
+# Mac
+.DS_Store
+
+# Eclipse
+.classpath
+.project
+.settings/
+.wtpmodules
+.metadata
