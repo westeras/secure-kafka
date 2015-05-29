@@ -1,7 +1,7 @@
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.File;
-import java.util.Base64;
+import org.apache.commons.codec.binary.Base64;
 
 /**
  * Created by adam on 5/21/15.
@@ -16,16 +16,27 @@ public class TestEncryption {
             RSAEncryptionUtility.generateKeyPair("src/main/resources/publicKey.txt", "src/main/resources/privateKey.txt");
         }
 
+        // Message to encrypt
         String message = "hello, world";
-        SecretKey aesSecretKey = AESEncryptionUtility.generateAESKey(256);
 
+        // Create AES key to encrypt text
+        SecretKey aesSecretKey = AESEncryptionUtility.generateAESKey(256);
+        String aesSecretKeyString = Base64.encodeBase64String(aesSecretKey.getEncoded());
+        System.out.println(aesSecretKeyString);
+        // Encrypt message using AES
         String encryptedMessage = AESEncryptionUtility.encrypt(aesSecretKey, message);
 
-        byte[] encryptedAESKey = RSAEncryptionUtility.encrypt("src/main/resources/publicKey.txt", aesSecretKey.getEncoded());
+        // Encrypt AES key using RSA public key
+        String encryptedAESKey = RSAEncryptionUtility.encrypt("src/main/resources/publicKey.txt", aesSecretKeyString);
 
-        byte[] decryptedAESKey = RSAEncryptionUtility.decrypt("src/main/resources/privateKey.txt", encryptedAESKey);
-        SecretKey secretKey = new SecretKeySpec(decryptedAESKey, 0, decryptedAESKey.length, "AES");
+        // At this point data would be sent over the insecure network
 
+        // Decrypt AES key using RSA private key and create Java SecretKey from result
+        String decryptedAESKey = RSAEncryptionUtility.decrypt("src/main/resources/privateKey.txt", encryptedAESKey);
+        byte[] decryptedAESKeyBytes = Base64.decodeBase64(decryptedAESKey);
+        SecretKey secretKey = new SecretKeySpec(decryptedAESKeyBytes, 0, decryptedAESKeyBytes.length, "AES");
+
+        // Decrypt message using decrypted AES key
         String decryptedMessage = AESEncryptionUtility.decrypt(secretKey, encryptedMessage);
 
         System.out.println("Decrypted message: " + decryptedMessage);

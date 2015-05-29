@@ -1,7 +1,7 @@
 import javax.crypto.*;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
-import java.util.Base64;
+import org.apache.commons.codec.binary.Base64;
 
 /**
  * Created by adam on 5/27/15.
@@ -42,8 +42,7 @@ public class AESEncryptionUtility {
             e.printStackTrace();
         }
 
-        Base64.Encoder encoder = Base64.getEncoder();
-        String encryptedTextString = encoder.encodeToString(encryptedText);
+        String encryptedTextString = Base64.encodeBase64String(encryptedText);
         return encryptedTextString;
     }
 
@@ -51,8 +50,7 @@ public class AESEncryptionUtility {
         Cipher cipher;
         byte[] decryptedText = null;
 
-        Base64.Decoder decoder = Base64.getDecoder();
-        byte[] encryptedText = decoder.decode(text);
+        byte[] encryptedText = Base64.decodeBase64(text);
 
         try {
             cipher = Cipher.getInstance("AES");

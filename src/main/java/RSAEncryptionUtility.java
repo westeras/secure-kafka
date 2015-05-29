@@ -4,6 +4,7 @@ import java.security.*;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
+import org.apache.commons.codec.binary.Base64;
 
 /**
  * Created by adam on 5/27/15.
@@ -56,7 +57,7 @@ public class RSAEncryptionUtility {
         }
     }
 
-    public static byte[] encrypt(String keyPath, byte[] text) {
+    public static String encrypt(String keyPath, String text) {
         Cipher cipher;
         byte[] encryptedText = null;
 
@@ -64,7 +65,7 @@ public class RSAEncryptionUtility {
             cipher = Cipher.getInstance("RSA");
             cipher.init(Cipher.ENCRYPT_MODE, loadPublicKey(keyPath));
 
-            encryptedText = cipher.doFinal(text);
+            encryptedText = cipher.doFinal(text.getBytes());
         } catch (NoSuchAlgorithmException e) {
             e.printStackTrace();
         } catch (NoSuchPaddingException e) {
@@ -75,20 +76,24 @@ public class RSAEncryptionUtility {
             e.printStackTrace();
         } catch (IllegalBlockSizeException e) {
             e.printStackTrace();
+            System.exit(-1);
         }
 
-        return encryptedText;
+        String encryptedTextString = Base64.encodeBase64String(encryptedText);
+        return encryptedTextString;
     }
 
-    public static byte[] decrypt(String keyPath, byte[] text) {
+    public static String decrypt(String keyPath, String text) {
         Cipher cipher;
         byte[] decryptedText = null;
+
+        byte[] encryptedText = Base64.decodeBase64(text);
 
         try {
             cipher = Cipher.getInstance("RSA");
             cipher.init(Cipher.DECRYPT_MODE, loadPrivateKey(keyPath));
 
-            decryptedText = cipher.doFinal(text);
+            decryptedText = cipher.doFinal(encryptedText);
         } catch (NoSuchAlgorithmException e) {
             e.printStackTrace();
         } catch (NoSuchPaddingException e) {
@@ -101,7 +106,7 @@ public class RSAEncryptionUtility {
             e.printStackTrace();
         }
 
-        return decryptedText;
+        return new String(decryptedText);
     }
 
     private static PrivateKey loadPrivateKey(String keyPath) {
