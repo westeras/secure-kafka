@@ -42,17 +42,9 @@ public class TestAvroSerialization {
 
         String payload = "hello, world";
         String encryptedPayload = AESEncryptionUtility.encrypt(key, payload);
-        String message  = "";
-        for (int i = 0; i < 63; i++) {
-            message = message + "a";
-        }
-
-        System.out.println(encryptedKey);
-        System.out.println(encryptedPayload);
-        System.out.println(encryptedKey.charAt(63));
 
         GenericRecord recordBefore = new GenericData.Record(this.schema);
-        recordBefore.put("secretKey", message);
+        recordBefore.put("secretKey", encryptedKey);
         recordBefore.put("payload", encryptedPayload);
 
         DatumWriter<GenericRecord> writer = new GenericDatumWriter<>(this.schema);
