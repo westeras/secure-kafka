@@ -1,6 +1,9 @@
 import org.junit.Test;
 
+import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.SecretKey;
+
+import java.io.UnsupportedEncodingException;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
@@ -11,25 +14,29 @@ import static org.junit.Assert.assertNotEquals;
 public class TestEncryptionUtilities {
 
     @Test
-    public void testRSAEncryption() {
+    public void testRSAEncryption() throws UnsupportedEncodingException, IllegalBlockSizeException {
         String message = "hello, world";
+        byte[] encodedMessage = message.getBytes("UTF-8");
 
-        String encryptedMessage = RSAEncryptionUtility.encrypt("src/main/resources/publicKey.txt", message);
-        String decryptedMessage = RSAEncryptionUtility.decrypt("src/main/resources/privateKey.txt", encryptedMessage);
+        byte[] encryptedMessage = RSAEncryptionUtility.encrypt("src/main/resources/publicKey.txt", encodedMessage);
+        byte[] decryptedMessage = RSAEncryptionUtility.decrypt("src/main/resources/privateKey.txt", encryptedMessage);
 
-        assertNotEquals("hello, world", encryptedMessage);
-        assertEquals("hello, world", decryptedMessage);
+        assertNotEquals("hello, world", new String(encryptedMessage, "UTF-8"));
+        assertEquals("hello, world", new String(decryptedMessage, "UTF-8"));
     }
 
     @Test
-    public void testAESEncryption() {
+    public void testAESEncryption() throws UnsupportedEncodingException {
         String message = "hello, world";
+        byte[] encodedMessage = message.getBytes("UTF-8");
 
         SecretKey key = AESEncryptionUtility.generateAESKey(256);
-        String encryptedMessage = AESEncryptionUtility.encrypt(key, message);
-        String decryptedMessage = AESEncryptionUtility.decrypt(key, encryptedMessage);
+        byte[] encryptedMessage = AESEncryptionUtility.encrypt(key, encodedMessage);
+        byte[] decryptedMessage = AESEncryptionUtility.decrypt(key, encryptedMessage);
 
-        assertNotEquals("hello, world", encryptedMessage);
-        assertEquals("hello, world", decryptedMessage);
+
+
+        assertNotEquals("hello, world", new String(encryptedMessage, "UTF-8"));
+        assertEquals("hello, world", new String(decryptedMessage, "UTF-8"));
     }
 }

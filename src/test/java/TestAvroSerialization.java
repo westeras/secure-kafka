@@ -7,12 +7,13 @@ import org.apache.avro.io.*;
 import org.junit.Before;
 import org.junit.Test;
 
+import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.util.HashMap;
-
-import org.apache.commons.codec.binary.Base64;
+import java.io.UnsupportedEncodingException;
+import java.nio.ByteBuffer;
 
 import static org.junit.Assert.assertEquals;
 
@@ -35,17 +36,19 @@ public class TestAvroSerialization {
     }
 
     @Test
-    public void testSerializeDeserialize() {
+    public void testSerializeDeserialize() throws UnsupportedEncodingException {
         SecretKey key = AESEncryptionUtility.generateAESKey(256);
-        String keyString = Base64.encodeBase64String(key.getEncoded());
-        String encryptedKey = RSAEncryptionUtility.encrypt("src/main/resources/publicKey.txt", keyString);
+        byte[] encryptedKey = RSAEncryptionUtility.encrypt("src/main/resources/publicKey.txt", key.getEncoded());
 
         String payload = "hello, world";
-        String encryptedPayload = AESEncryptionUtility.encrypt(key, payload);
+        byte[] encryptedPayload = AESEncryptionUtility.encrypt(key, payload.getBytes("UTF-8"));
+
+        ByteBuffer secretKeyBB = ByteBuffer.wrap(encryptedKey);
+        ByteBuffer payloadBB = ByteBuffer.wrap(encryptedPayload);
 
         GenericRecord recordBefore = new GenericData.Record(this.schema);
-        recordBefore.put("secretKey", encryptedKey);
-        recordBefore.put("payload", encryptedPayload);
+        recordBefore.put("secretKey", secretKeyBB);
+        recordBefore.put("payload", payloadBB);
 
         DatumWriter<GenericRecord> writer = new GenericDatumWriter<>(this.schema);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -59,21 +62,44 @@ public class TestAvroSerialization {
             e.printStackTrace();
         }
 
-        String serialized = new String(out.toByteArray());
+        //String serialized = new String(out.toByteArray());
 
         DatumReader<GenericRecord> reader = new GenericDatumReader<>(this.schema);
-        BinaryDecoder decoder = DecoderFactory.get().binaryDecoder(serialized.getBytes(), null);
+        BinaryDecoder decoder = DecoderFactory.get().binaryDecoder(out.toByteArray(), null);
         GenericRecord recordAfter = null;
         try {
             recordAfter = reader.read(null, decoder);
         } catch (IOException e) {
             e.printStackTrace();
+            System.exit(-1);
         }
 
-        System.out.println(recordAfter.get("secretKey"));
-        System.out.println(recordAfter.get("payload"));
+        ByteBuffer secretKeyAfter = (ByteBuffer) recordAfter.get("secretKey");
+        ByteBuffer payloadAfter = (ByteBuffer) recordAfter.get("payload");
 
-        //assertEquals("this is a key", recordAfter.get("secretKey").toString());
-        //assertEquals("hello, world", recordAfter.get("payload").toString());
+        byte[] secretKeyAfterBytes = getBytesFromByteBuffer(secretKeyAfter);
+        byte[] payloadAfterBytes = getBytesFromByteBuffer(payloadAfter);
+
+        byte[] decryptedSecretKey = null;
+        byte[] decryptedPayload = null;
+
+        try {
+            decryptedSecretKey = RSAEncryptionUtility.decrypt("src/main/resources/privateKey.txt", secretKeyAfterBytes);
+            SecretKey secretKey = new SecretKeySpec(decryptedSecretKey, 0, decryptedSecretKey.length, "AES");
+
+            decryptedPayload = AESEncryptionUtility.decrypt(secretKey, payloadAfterBytes);
+        } catch (IllegalBlockSizeException e) {
+            e.printStackTrace();
+            System.exit(-1);
+        }
+
+        assertEquals(payload, new String(decryptedPayload, "UTF-8"));
+    }
+
+    private byte[] getBytesFromByteBuffer(ByteBuffer byteBuffer) {
+        byte[] bytes = new byte[byteBuffer.remaining()];
+        byteBuffer.get(bytes, 0, bytes.length);
+
+        return bytes;
     }
 }
