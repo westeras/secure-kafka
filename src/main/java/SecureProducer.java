@@ -1,5 +1,4 @@
 import kafka.javaapi.producer.Producer;
-import kafka.message.Message;
 import kafka.producer.KeyedMessage;
 import kafka.producer.ProducerConfig;
 import org.apache.avro.Schema;
@@ -13,7 +12,9 @@ import org.apache.avro.io.EncoderFactory;
 import javax.crypto.SecretKey;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import org.apache.commons.codec.binary.Base64;
+
+import java.io.UnsupportedEncodingException;
+import java.nio.ByteBuffer;
 import java.util.Properties;
 
 /**
@@ -33,17 +34,15 @@ public class SecureProducer {
         }
     }
 
-    private KeyedMessage<String, String> buildAvroRecord(String messageText, String keyPath) {
+    private KeyedMessage<String, byte[]> buildAvroRecord(String messageText, String keyPath) throws UnsupportedEncodingException {
         GenericRecord record = new GenericData.Record(this.schema);
 
         SecretKey key = AESEncryptionUtility.generateAESKey(256);
-        String keyString = Base64.encodeBase64String(key.getEncoded());
-        String encryptedKeyString = RSAEncryptionUtility.encrypt(keyPath, keyString);
-        System.out.println(encryptedKeyString);
-        String encryptedMessage = AESEncryptionUtility.encrypt(key, messageText);
+        byte[] encryptedKey = RSAEncryptionUtility.encrypt(keyPath, key.getEncoded());
+        byte[] encryptedMessage = AESEncryptionUtility.encrypt(key, messageText.getBytes("UTF-8"));
 
-        record.put("secretKey", keyString);
-        record.put("payload", encryptedMessage);
+        record.put("secretKey", ByteBuffer.wrap(encryptedKey));
+        record.put("payload", ByteBuffer.wrap(encryptedMessage));
 
         DatumWriter<GenericRecord> writer = new GenericDatumWriter<>(this.schema);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -57,23 +56,22 @@ public class SecureProducer {
             e.printStackTrace();
         }
 
-        //Message message = new Message(out.toByteArray());
-        return new KeyedMessage<String, String>("secure", new String(out.toByteArray()));
+        return new KeyedMessage<>("secure", out.toByteArray());
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws UnsupportedEncodingException {
         PropertiesUtility propertiesUtility = new PropertiesUtility("/kafka.properties");
         Properties properties = propertiesUtility.getProperties();
 
         properties.setProperty("metadata.broker.list", properties.getProperty("brokerHosts"));
-        properties.setProperty("serializer.class", "kafka.serializer.StringEncoder");
+        properties.setProperty("serializer.class", "kafka.serializer.DefaultEncoder");
 
         ProducerConfig producerConfig = new ProducerConfig(properties);
-        Producer<String, String> producer = new Producer<>(producerConfig);
+        Producer<String, byte[]> producer = new Producer<>(producerConfig);
         SecureProducer secureProducer = new SecureProducer();
 
         String message = "Hello, world!";
-        KeyedMessage<String, String> km = secureProducer.buildAvroRecord(message, properties.getProperty("publicKeyPath"));
+        KeyedMessage<String, byte[]> km = secureProducer.buildAvroRecord(message, properties.getProperty("publicKeyPath"));
         producer.send(km);
     }
 }

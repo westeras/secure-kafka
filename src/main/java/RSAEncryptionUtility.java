@@ -23,9 +23,7 @@ public class RSAEncryptionUtility {
 
             savePublicKey(keyPair.getPublic(), publicKeyPath);
             savePrivateKey(keyPair.getPrivate(), privateKeyPath);
-        } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
-        } catch (NoSuchProviderException e) {
+        } catch (NoSuchAlgorithmException | NoSuchProviderException e) {
             e.printStackTrace();
         }
     }
@@ -36,8 +34,6 @@ public class RSAEncryptionUtility {
             FileOutputStream fos = new FileOutputStream(filePath);
             fos.write(spec.getEncoded());
             fos.close();
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -50,14 +46,12 @@ public class RSAEncryptionUtility {
             FileOutputStream fos = new FileOutputStream(filePath);
             fos.write(spec.getEncoded());
             fos.close();
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    public static String encrypt(String keyPath, String text) {
+    public static byte[] encrypt(String keyPath, byte[] text) throws UnsupportedEncodingException {
         Cipher cipher;
         byte[] encryptedText = null;
 
@@ -65,48 +59,34 @@ public class RSAEncryptionUtility {
             cipher = Cipher.getInstance("RSA");
             cipher.init(Cipher.ENCRYPT_MODE, loadPublicKey(keyPath));
 
-            encryptedText = cipher.doFinal(text.getBytes());
-        } catch (NoSuchAlgorithmException e) {
+            encryptedText = cipher.doFinal(text);
+        } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException
+                | IllegalBlockSizeException | BadPaddingException e) {
             e.printStackTrace();
-        } catch (NoSuchPaddingException e) {
-            e.printStackTrace();
-        } catch (InvalidKeyException e) {
-            e.printStackTrace();
-        } catch (BadPaddingException e) {
-            e.printStackTrace();
-        } catch (IllegalBlockSizeException e) {
-            e.printStackTrace();
-            System.exit(-1);
         }
 
-        String encryptedTextString = Base64.encodeBase64String(encryptedText);
-        return encryptedTextString;
+        //String encryptedTextString = new String(encryptedText, "UTF-8"); //Base64.encodeBase64String(encryptedText);
+        return encryptedText;
     }
 
-    public static String decrypt(String keyPath, String text) {
+    public static byte[] decrypt(String keyPath, byte[] text) throws UnsupportedEncodingException, IllegalBlockSizeException {
         Cipher cipher;
         byte[] decryptedText = null;
 
-        byte[] encryptedText = Base64.decodeBase64(text);
+        //byte[] encryptedText = text.getBytes("UTF-8"); //Base64.decodeBase64(text);
 
         try {
             cipher = Cipher.getInstance("RSA");
             cipher.init(Cipher.DECRYPT_MODE, loadPrivateKey(keyPath));
 
-            decryptedText = cipher.doFinal(encryptedText);
-        } catch (NoSuchAlgorithmException e) {
+            decryptedText = cipher.doFinal(text);
+        } catch (NoSuchAlgorithmException | NoSuchPaddingException | BadPaddingException | InvalidKeyException e) {
             e.printStackTrace();
-        } catch (NoSuchPaddingException e) {
-            e.printStackTrace();
-        } catch (InvalidKeyException e) {
-            e.printStackTrace();
-        } catch (BadPaddingException e) {
-            e.printStackTrace();
-        } catch (IllegalBlockSizeException e) {
-            e.printStackTrace();
+            System.exit(-1);
         }
 
-        return new String(decryptedText);
+        //return new String(decryptedText, "UTF-8");
+        return decryptedText;
     }
 
     private static PrivateKey loadPrivateKey(String keyPath) {
@@ -122,13 +102,7 @@ public class RSAEncryptionUtility {
             KeyFactory keyFactory = KeyFactory.getInstance("RSA");
             PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(encodedPK);
             pk = keyFactory.generatePrivate(spec);
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
-        } catch (InvalidKeySpecException e) {
+        } catch (IOException | NoSuchAlgorithmException | InvalidKeySpecException e) {
             e.printStackTrace();
         }
 
@@ -147,13 +121,7 @@ public class RSAEncryptionUtility {
             KeyFactory keyFactory = KeyFactory.getInstance("RSA");
             X509EncodedKeySpec spec = new X509EncodedKeySpec(encodedPK);
             pk = keyFactory.generatePublic(spec);
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
-        } catch (InvalidKeySpecException e) {
+        } catch (IOException | NoSuchAlgorithmException | InvalidKeySpecException e) {
             e.printStackTrace();
         }
 

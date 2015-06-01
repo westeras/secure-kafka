@@ -1,4 +1,5 @@
 import javax.crypto.*;
+import java.io.UnsupportedEncodingException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import org.apache.commons.codec.binary.Base64;
@@ -17,57 +18,42 @@ public class AESEncryptionUtility {
         }
 
         keyGenerator.init(keyLengthBits);
-        SecretKey secretKey = keyGenerator.generateKey();
 
-        return secretKey;
+        return keyGenerator.generateKey();
     }
 
-    public static String encrypt(SecretKey key, String text) {
+    public static byte[] encrypt(SecretKey key, byte[] message) throws UnsupportedEncodingException {
         Cipher cipher;
         byte[] encryptedText = null;
         try {
             cipher = Cipher.getInstance("AES");
             cipher.init(Cipher.ENCRYPT_MODE, key);
 
-            encryptedText = cipher.doFinal(text.getBytes());
-        } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
-        } catch (NoSuchPaddingException e) {
-            e.printStackTrace();
-        } catch (InvalidKeyException e) {
-            e.printStackTrace();
-        } catch (BadPaddingException e) {
-            e.printStackTrace();
-        } catch (IllegalBlockSizeException e) {
+            encryptedText = cipher.doFinal(message);
+        } catch (NoSuchAlgorithmException | InvalidKeyException | BadPaddingException
+                | IllegalBlockSizeException | NoSuchPaddingException e) {
             e.printStackTrace();
         }
 
-        String encryptedTextString = Base64.encodeBase64String(encryptedText);
-        return encryptedTextString;
+        String encryptedTextString = new String(encryptedText, "UTF-8"); //Base64.encodeBase64String(encryptedText);
+        return encryptedText;
     }
 
-    public static String decrypt(SecretKey key, String text) {
+    public static byte[] decrypt(SecretKey key, byte[] message) throws UnsupportedEncodingException {
         Cipher cipher;
         byte[] decryptedText = null;
 
-        byte[] encryptedText = Base64.decodeBase64(text);
+        //byte[] encryptedText = text.getBytes("UTF-8"); //Base64.decodeBase64(text);
 
         try {
             cipher = Cipher.getInstance("AES");
             cipher.init(Cipher.DECRYPT_MODE, key);
-            decryptedText = cipher.doFinal(encryptedText);
-        } catch (InvalidKeyException e) {
-            e.printStackTrace();
-        } catch (BadPaddingException e) {
-            e.printStackTrace();
-        } catch (IllegalBlockSizeException e) {
-            e.printStackTrace();
-        } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
-        } catch (NoSuchPaddingException e) {
+            decryptedText = cipher.doFinal(message);
+        } catch (InvalidKeyException | BadPaddingException | NoSuchAlgorithmException
+                | IllegalBlockSizeException | NoSuchPaddingException e) {
             e.printStackTrace();
         }
 
-        return new String(decryptedText);
+        return decryptedText;
     }
 }

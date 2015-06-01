@@ -1,6 +1,9 @@
+import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.File;
+import java.io.UnsupportedEncodingException;
+
 import org.apache.commons.codec.binary.Base64;
 
 /**
@@ -8,7 +11,7 @@ import org.apache.commons.codec.binary.Base64;
  */
 public class TestEncryption {
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws UnsupportedEncodingException, IllegalBlockSizeException {
         File publicKey = new File("src/main/resources/publicKey.txt");
         File privateKey = new File("src/main/resources/privateKey.txt");
 
@@ -24,20 +27,20 @@ public class TestEncryption {
         String aesSecretKeyString = Base64.encodeBase64String(aesSecretKey.getEncoded());
         System.out.println(aesSecretKeyString);
         // Encrypt message using AES
-        String encryptedMessage = AESEncryptionUtility.encrypt(aesSecretKey, message);
+        byte[] encryptedMessage = AESEncryptionUtility.encrypt(aesSecretKey, message.getBytes("UTF-8"));
 
         // Encrypt AES key using RSA public key
-        String encryptedAESKey = RSAEncryptionUtility.encrypt("src/main/resources/publicKey.txt", aesSecretKeyString);
+        byte[] encryptedAESKey = RSAEncryptionUtility.encrypt("src/main/resources/publicKey.txt", aesSecretKey.getEncoded());
 
         // At this point data would be sent over the insecure network
 
         // Decrypt AES key using RSA private key and create Java SecretKey from result
-        String decryptedAESKey = RSAEncryptionUtility.decrypt("src/main/resources/privateKey.txt", encryptedAESKey);
+        byte[] decryptedAESKey = RSAEncryptionUtility.decrypt("src/main/resources/privateKey.txt", encryptedAESKey);
         byte[] decryptedAESKeyBytes = Base64.decodeBase64(decryptedAESKey);
         SecretKey secretKey = new SecretKeySpec(decryptedAESKeyBytes, 0, decryptedAESKeyBytes.length, "AES");
 
         // Decrypt message using decrypted AES key
-        String decryptedMessage = AESEncryptionUtility.decrypt(secretKey, encryptedMessage);
+        byte[] decryptedMessage = AESEncryptionUtility.decrypt(secretKey, encryptedMessage);
 
         System.out.println("Decrypted message: " + decryptedMessage);
     }

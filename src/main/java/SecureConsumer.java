@@ -9,7 +9,12 @@ import org.apache.avro.io.BinaryDecoder;
 import org.apache.avro.io.DatumReader;
 import org.apache.avro.io.DecoderFactory;
 
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -65,11 +70,39 @@ public class SecureConsumer extends Thread {
             record = reader.read(null, decoder);
         } catch (IOException e) {
             e.printStackTrace();
+            System.exit(-1);
         }
 
-        System.out.println(record.get("secretKey"));
-        System.out.println(record.get("payload"));
-        return null;
+        ByteBuffer secretKey = (ByteBuffer) record.get("secretKey");
+        ByteBuffer payload = (ByteBuffer) record.get("payload");
+
+        byte[] secretKeyBytes = getBytesFromByteBuffer(secretKey);
+        byte[] payloadBytes = getBytesFromByteBuffer(payload);
+
+        byte[] decryptedSecretKey = null;
+        byte[] decryptedPayload = null;
+
+        try {
+            decryptedSecretKey = RSAEncryptionUtility.decrypt(this.properties.getProperty("privateKeyPath"), secretKeyBytes);
+            SecretKey key = new SecretKeySpec(decryptedSecretKey, 0, decryptedSecretKey.length, "AES");
+
+            decryptedPayload = AESEncryptionUtility.decrypt(key, payloadBytes);
+        } catch (UnsupportedEncodingException | IllegalBlockSizeException e) {
+            e.printStackTrace();
+            System.exit(-1);
+        }
+
+        String decryptedPayloadString = "";
+        try {
+            decryptedPayloadString = new String(decryptedPayload, "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+            System.exit(-1);
+        }
+
+        System.out.println(decryptedPayloadString);
+
+        return decryptedPayloadString;
     }
 
     private ConsumerConfig createConsumerConfig() {
@@ -80,5 +113,12 @@ public class SecureConsumer extends Thread {
         props.put("zookeeper.sync.time.ms", "200");
         props.put("auto.commit.interval.ms", "1000");
         return new ConsumerConfig(props);
+    }
+
+    private byte[] getBytesFromByteBuffer(ByteBuffer byteBuffer) {
+        byte[] bytes = new byte[byteBuffer.remaining()];
+        byteBuffer.get(bytes, 0, bytes.length);
+
+        return bytes;
     }
 }
