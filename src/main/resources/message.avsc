@@ -3,7 +3,7 @@
   "name": "message",
   "doc": "Encrypted message with encrypted secret key",
   "fields": [
-    {"name": "secretKey", "type": "string"},
-    {"name": "payload", "type": "string"}
+    {"name": "secretKey", "type": "bytes"},
+    {"name": "payload", "type": "bytes"}
   ]
 }
